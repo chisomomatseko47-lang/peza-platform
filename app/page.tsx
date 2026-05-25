@@ -105,7 +105,7 @@ export default function Home() {
       `}</style>
 
       {/* Floating WA */}
-      <a href="https://wa.me/260000000000" target="_blank" rel="noreferrer"
+      <a href="https://wa.me/260570230160" target="_blank" rel="noreferrer"
         style={{ position: "fixed", bottom: 28, right: 28, zIndex: 999, width: 56, height: 56, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(37,211,102,.5)", textDecoration: "none" }}>
         <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#25D366", animation: "wap 2.5s infinite", zIndex: -1 }} />
         <WA />
@@ -311,7 +311,7 @@ export default function Home() {
             <div style={{ display: "flex", gap: 12, maxWidth: 460, margin: "0 auto 20px", flexWrap: "wrap", justifyContent: "center" }}>
               <input type="tel" placeholder="Your WhatsApp number (+260...)" value={wlPhone} onChange={(e) => setWlPhone(e.target.value)}
                 style={{ flex: 1, minWidth: 240, background: "#0f0f0f", border: "1px solid rgba(255,255,255,.11)", borderRadius: 12, padding: "15px 20px", fontSize: 14, color: "#e8e4dc", fontFamily: "inherit", outline: "none" }} />
-              <button onClick={() => { if (!wlPhone.trim()) return; window.open("https://wa.me/260000000000?text=" + encodeURIComponent("Hi Peza! Early access.\nPhone: " + wlPhone), "_blank"); setWlDone(true); }}
+              <button onClick={() => { if (!wlPhone.trim()) return; window.open("https://wa.me/260570230160?text=" + encodeURIComponent("Hi Peza! Early access.\nPhone: " + wlPhone), "_blank"); setWlDone(true); }}
                 style={{ background: G, color: "#000", padding: "15px 24px", borderRadius: 12, fontWeight: 700, fontSize: 15, border: "none" }}>Join →</button>
             </div>
           ) : (
@@ -388,7 +388,7 @@ export default function Home() {
                   <input type="text" placeholder="e.g. Mama Grace Grocery Store" value={biz} onChange={(e) => setBiz(e.target.value)}
                     style={{ width: "100%", background: "#141414", border: "1px solid rgba(255,255,255,.11)", borderRadius: 10, padding: "12px 16px", fontSize: 14, color: "#e8e4dc", fontFamily: "inherit", outline: "none" }} />
                 </div>
-                <button onClick={() => { if (!name || !phone || !biz) return; window.open("https://wa.me/260000000000?text=" + encodeURIComponent("SELLER:\nName: " + name + "\nPhone: " + phone + "\nBusiness: " + biz), "_blank"); setDone(true); }}
+                <button onClick={() => { if (!name || !phone || !biz) return; window.open("https://wa.me/260570230160?text=" + encodeURIComponent("SELLER:\nName: " + name + "\nPhone: " + phone + "\nBusiness: " + biz), "_blank"); setDone(true); }}
                   style={{ width: "100%", padding: 15, background: G, color: "#000", fontWeight: 700, fontSize: 15, border: "none", borderRadius: 12, cursor: "pointer", marginTop: 8 }}>
                   Register My Business on Peza
                 </button>
@@ -406,3 +406,4 @@ export default function Home() {
     </div>
   );
 }
+
