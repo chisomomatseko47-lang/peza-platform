@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+function getSupabase(){return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)}
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!
-})
+function getAnthropic(){return new Anthropic({apiKey:process.env.ANTHROPIC_API_KEY})}
 
 const PEZA_SYSTEM = `You are Peza, Zambia's WhatsApp commerce assistant. 
 Be warm, friendly and proudly Zambian. Use occasional Nyanja greetings.
@@ -169,7 +164,7 @@ Reply with a number!`
   }
 
   if (state === 'SME_REGISTER') {
-    await supabase.from('businesses').upsert({
+    await getSupabase().from('businesses').upsert({
       name: msgRaw,
       whatsapp_number: phone,
       category: 'general',
@@ -196,7 +191,7 @@ Reply with a number!`
 
   if (state === 'AGRI_SELL') {
     await updateConversation(phone, { state: 'MAIN_MENU' })
-    const aiReply = await anthropic.messages.create({
+    const aiReply = await getAnthropic().messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 200,
       system: PEZA_SYSTEM + '\nA farmer wants to sell produce. Give them a helpful response with estimated price and next steps.',
@@ -206,7 +201,7 @@ Reply with a number!`
   }
 
   // Default — AI handles unknown input
-  const aiReply = await anthropic.messages.create({
+  const aiReply = await getAnthropic().messages.create({
     model: 'claude-haiku-4-5',
     max_tokens: 200,
     system: PEZA_SYSTEM + `\nUser state: ${state}. Be helpful and suggest typing *menu* to see options.`,
