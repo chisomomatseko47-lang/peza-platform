@@ -1,0 +1,110 @@
+# KIVARA GROUP — CURSOR RULES
+# Every suggestion must follow these brand guidelines exactly.
+
+## PROJECT OVERVIEW
+- Platform: Peza — Zambia's WhatsApp Commerce Platform
+- Parent Company: Kivara Group
+- Agency Arm: Kivara Studios
+- Stack: Next.js 14, TypeScript, Tailwind CSS, Supabase, Twilio, Claude AI
+
+## PEZA BRAND COLORS
+- Background: #000000
+- Primary Gold: #C8860A
+- Zambian Green: #1A6B3C
+- Burnt Orange: #C1440E
+- Pure White: #FFFFFF
+- Deep Green: #0D4A2A
+- Use black backgrounds by default
+- Gold for primary CTAs and highlights
+- Green for success states and confirmations
+- Orange for alerts and secondary accents
+
+## KIVARA GROUP BRAND COLORS
+- Matte Black: #050505
+- Graphite: #1C1C1E
+- Champagne Gold: #C6A46C
+- Soft Metallic Gold: #E2C88A
+- Silver Accent: #B8B0C7
+
+## TYPOGRAPHY RULES
+- Headings: Bold geometric sans-serif, wide letter spacing, all caps where appropriate
+- Body: Clean, readable, minimum 16px
+- Taglines: Wide tracking, spaced caps
+- Never use decorative or script fonts
+- Import from Google Fonts: Space Grotesk for headings, Inter for body
+
+## PEZA TAGLINE
+- Primary: "BUY. SELL. CONNECT."
+- Descriptor: "ZAMBIA'S COMMERCE PLATFORM"
+- Pillars: Marketplace | Chat Commerce | Trusted Deals | Digital Payments | Delivery
+
+## KIVARA TAGLINE
+- Primary: "INVISIBLE INTELLIGENCE INFRASTRUCTURE"
+- Tagline: "KIVARA — INTELLIGENT INFRASTRUCTURE. INFINITE POSSIBILITIES."
+
+## DESIGN PRINCIPLES
+- Dark backgrounds only — never white backgrounds on hero sections
+- Gold accents for premium feel
+- Cinematic and spacious layouts
+- Smooth Framer Motion animations on all interactions
+- Mobile first — most Zambian users are on mobile
+- WhatsApp green (#25D366) only for WhatsApp CTAs
+- All buttons must have hover states
+- Minimum touch target 44px for mobile
+
+## PEZA CONVERSATION STATES
+- IDLE
+- WELCOME
+- MAIN_MENU
+- BROWSE_CATEGORY
+- BROWSE_PRODUCTS
+- PRODUCT_DETAIL
+- CART_REVIEW
+- AWAITING_ADDRESS
+- PAYMENT_METHOD
+- AWAITING_PAYMENT
+- ORDER_CONFIRMED
+- ORDER_TRACKING
+
+## PAYMENT METHODS
+- Airtel Money (primary)
+- Cash on Delivery (secondary)
+- Never hardcode API keys
+- Always use environment variables
+
+## DATABASE TABLES
+- businesses
+- products
+- customers
+- orders
+- order_items
+- conversations
+- broadcasts
+- reminders
+- price_alerts
+
+## CODE RULES
+- Always use TypeScript — never plain JavaScript
+- Always handle errors gracefully
+- Always validate user input
+- Use async/await — never callbacks
+- Keep components small and focused
+- Use Supabase for all database operations
+- Use Twilio for all WhatsApp messaging
+- Use Claude Haiku for AI responses
+- Never expose API keys in client code
+- All API routes go in app/api/
+
+## CONTENT RULES
+- Peza never generates political opinions
+- Peza never endorses candidates or parties
+- All election content sourced from ECZ only
+- Language: English primarily, with Nyanja/Bemba phrases where appropriate
+- Tone: Warm, trustworthy, accessible, proudly Zambian
+
+## ZAMBIA SPECIFIC
+- Currency: Zambian Kwacha (ZMW) — always show K prefix
+- Phone numbers: +260 format
+- Time zone: Africa/Lusaka (CAT — UTC+2)
+- Primary mobile networks: Airtel Zambia, MTN Zambia
+- Target market: Lusaka SMEs first, then national expansion

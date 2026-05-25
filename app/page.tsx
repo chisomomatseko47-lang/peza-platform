@@ -1,65 +1,116 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main style={{
+      background: '#000000',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'sans-serif',
+      padding: '20px',
+      position: 'relative',
+    }}>
+      <nav style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '24px 40px',
+      }}>
+        <div>
+          <span style={{color: '#C8860A', fontWeight: 'bold', fontSize: '20px', letterSpacing: '4px'}}>PEZA</span>
+          <span style={{color: '#1A6B3C', fontSize: '11px', letterSpacing: '3px', marginLeft: '8px'}}>BY KIVARA</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <a href="https://wa.me/+260000000000" style={{
+          background: '#25D366',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '999px',
+          textDecoration: 'none',
+          fontSize: '13px',
+          fontWeight: 'bold',
+        }}>Start on WhatsApp</a>
+      </nav>
+
+      <div style={{textAlign: 'center', maxWidth: '800px', marginTop: '80px'}}>
+        <div style={{
+          border: '1px solid rgba(200,134,10,0.3)',
+          borderRadius: '999px',
+          padding: '6px 20px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '32px',
+        }}>
+          <div style={{width: '8px', height: '8px', borderRadius: '50%', background: '#1A6B3C'}} />
+          <span style={{color: '#C8860A', fontSize: '11px', letterSpacing: '3px'}}>ZAMBIA'S COMMERCE PLATFORM</span>
         </div>
-      </main>
-    </div>
-  );
+
+        <h1 style={{
+          fontSize: 'clamp(40px, 8vw, 80px)',
+          fontWeight: 'bold',
+          color: 'white',
+          margin: '0 0 24px',
+          lineHeight: 1,
+          letterSpacing: '-1px',
+        }}>
+          BUY. <span style={{color: '#C8860A'}}>SELL.</span> <span style={{color: '#1A6B3C'}}>CONNECT.</span>
+        </h1>
+
+        <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '18px', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 40px'}}>
+          Peza brings every Zambian business to WhatsApp. Browse local shops, place orders, pay with Airtel Money — all without leaving your chat.
+        </p>
+
+        <div style={{display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '60px'}}>
+          <a href="https://wa.me/+260000000000" style={{
+            background: '#25D366',
+            color: 'white',
+            padding: '16px 36px',
+            borderRadius: '999px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            minWidth: '200px',
+            textAlign: 'center',
+          }}>Start on WhatsApp</a>
+          <a href="#signup" style={{
+            border: '1px solid rgba(200,134,10,0.5)',
+            color: '#C8860A',
+            padding: '16px 36px',
+            borderRadius: '999px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            minWidth: '200px',
+            textAlign: 'center',
+          }}>List Your Business</a>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '32px',
+          paddingTop: '32px',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          maxWidth: '400px',
+          margin: '0 auto',
+        }}>
+          {[
+            {value: '17M+', label: 'ZAMBIANS'},
+            {value: 'FREE', label: 'TO JOIN'},
+            {value: 'WhatsApp', label: 'POWERED'},
+          ].map((stat) => (
+            <div key={stat.label} style={{textAlign: 'center'}}>
+              <div style={{color: '#C8860A', fontSize: '22px', fontWeight: 'bold'}}>{stat.value}</div>
+              <div style={{color: 'rgba(255,255,255,0.3)', fontSize: '11px', letterSpacing: '2px', marginTop: '4px'}}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
 }
