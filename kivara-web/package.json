@@ -1,0 +1,1 @@
+{"name":"kivara-web","version":"2.0.0","private":true,"description":"Kivara — Invisible Intelligence Infrastructure","scripts":{"dev":"vercel dev","deploy":"vercel --prod"}}
