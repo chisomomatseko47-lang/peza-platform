@@ -74,6 +74,9 @@ export const metadata: Metadata = {
     canonical: BASE_URL,
   },
   category: "ecommerce",
+  verification: {
+    google: "nlRYmwkCoTK_tapIEFfA72l7kRPQKZW4r7euvA1DbQY",
+  },
 };
 
 const jsonLd = {
