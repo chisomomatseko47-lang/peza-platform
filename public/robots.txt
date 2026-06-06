@@ -1,0 +1,21 @@
+# Peza Robots.txt
+# https://www.peza.africa
+
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /blog
+Allow: /blog/
+Allow: /dashboard
+
+# Block private/API routes from crawlers
+Disallow: /api/
+Disallow: /api/webhook/
+Disallow: /_next/
+Disallow: /dashboard/settings/
+
+# Sitemap location
+Sitemap: https://www.peza.africa/sitemap.xml
+
+# Crawl-delay for polite bots
+Crawl-delay: 10
