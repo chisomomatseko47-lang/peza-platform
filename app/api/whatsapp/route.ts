@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 // ── Env ───────────────────────────────────────────────────────────────────────
 const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY!
 const INFOBIP_BASE_URL = process.env.INFOBIP_BASE_URL!
