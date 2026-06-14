@@ -59,17 +59,38 @@ const db = (): SupabaseClient => createClient(
 
 async function getConv(phone: string) {
   const { data } = await db().from('conversations').select('*').eq('whatsapp_number', phone).single()
-  if (data) return data
+  if (data) {
+    // Parse stringified jsonb fields if needed
+    if (typeof data.context === 'string') { try { data.context = JSON.parse(data.context) } catch { data.context = {} } }
+    if (typeof data.cart === 'string') { try { data.cart = JSON.parse(data.cart) } catch { data.cart = [] } }
+    if (!data.context) data.context = {}
+    if (!data.cart) data.cart = []
+    return data
+  }
   const { data: n } = await db().from('conversations')
-    .insert({ whatsapp_number: phone, state: 'IDLE', cart: [], context: {} })
+    .insert({ whatsapp_number: phone, state: 'IDLE', cart: JSON.stringify([]), context: JSON.stringify({}) })
     .select().single()
+  if (n) {
+    n.context = {}
+    n.cart = []
+  }
   return n
 }
 
 async function setConv(phone: string, updates: Record<string, unknown>) {
-  await db().from('conversations')
-    .update({ ...updates, last_active: new Date().toISOString() })
+  // Explicitly serialize jsonb fields so Supabase stores them correctly
+  const payload: Record<string, unknown> = { last_active: new Date().toISOString() }
+  for (const [k, v] of Object.entries(updates)) {
+    if (k === 'context' || k === 'cart') {
+      payload[k] = typeof v === 'string' ? v : JSON.stringify(v)
+    } else {
+      payload[k] = v
+    }
+  }
+  const { error } = await db().from('conversations')
+    .update(payload)
     .eq('whatsapp_number', phone)
+  if (error) console.error('setConv error:', error.message)
 }
 
 async function getCustomer(phone: string) {
