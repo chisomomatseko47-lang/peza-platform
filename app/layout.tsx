@@ -106,11 +106,11 @@ const mobileNavScript =
   "(function(){" +
   "function init(){" +
   "var nav=document.querySelector('nav');" +
-  "if(!nav)return;" +
+  "if(!nav)return false;" +
   "var navChildren=[].slice.call(nav.children);" +
-  "if(navChildren.length<2)return;" +
+  "if(navChildren.length<2)return false;" +
   "var linksDiv=navChildren[1];" +
-  "if(linksDiv.id==='peza-nav-done')return;" +
+  "if(linksDiv.id==='peza-nav-done')return true;" +
   "linksDiv.id='peza-nav-done';" +
   "linksDiv.classList.add('peza-desktop-nav');" +
   "var btn=document.createElement('button');" +
@@ -141,10 +141,13 @@ const mobileNavScript =
   "btn.classList.remove('active');" +
   "document.body.style.overflow='';" +
   "});});" +
+  "return true;" +
   "}" +
-  "if(document.readyState==='loading'){" +
-  "document.addEventListener('DOMContentLoaded',init);" +
-  "}else{init();}" +
+  "function tryInit(n){" +
+  "if(init())return;" +
+  "if(n>0)setTimeout(function(){tryInit(n-1);},200);" +
+  "}" +
+  "tryInit(25);" +
   "})();";
 
 export default function RootLayout({
