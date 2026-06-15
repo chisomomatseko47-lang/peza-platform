@@ -102,6 +102,23 @@ const jsonLd = {
     "https://wa.me/260570230160",
   ],
 };
+const mobileNavScript =
+  "(function(){" +
+  "var h=document.getElementById('peza-hamburger');" +
+  "var m=document.getElementById('peza-mobile-menu');" +
+  "if(!h||!m)return;" +
+  "h.addEventListener('click',function(){" +
+  "var o=m.classList.toggle('open');" +
+  "h.setAttribute('aria-expanded',String(o));" +
+  "document.body.style.overflow=o?'hidden':'';" +
+  "});" +
+  "m.querySelectorAll('a').forEach(function(l){" +
+  "l.addEventListener('click',function(){" +
+  "m.classList.remove('open');" +
+  "h.setAttribute('aria-expanded','false');" +
+  "document.body.style.overflow='';" +
+  "});});" +
+  "})();";
 
 export default function RootLayout({
   children,
@@ -123,50 +140,14 @@ export default function RootLayout({
         <meta name="revisit-after" content="3 days" />
         <meta name="rating" content="general" />
       </head>
-            <body>
-              {children}
-                    <script
-                                id="peza-mobile-nav"
-                                dangerouslySetInnerHTML={{
-                                              __html: `(function(){
-                                                function init(){
-                                                    var mainDiv=Array.from(document.body.querySelectorAll(':scope > div')).find(function(d){return d.querySelector('nav')&&d.querySelector('footer');});
-                                                        if(!mainDiv)return setTimeout(init,150);
-                                                            var nav=mainDiv.querySelector('nav');
-                                                                if(!nav||document.getElementById('peza-hamburger'))return;
-                                                                    var navLinks=nav.children[1];
-                                                                        if(navLinks)navLinks.classList.add('peza-desktop-nav');
-                                                                            var btn=document.createElement('button');
-                                                                                btn.id='peza-hamburger';
-                                                                                    btn.setAttribute('aria-label','Toggle navigation');
-                                                                                        btn.setAttribute('aria-expanded','false');
-                                                                                            btn.innerHTML='<span></span><span></span><span></span>';
-                                                                                                nav.appendChild(btn);
-                                                                                                    var menu=document.createElement('div');
-                                                                                                        menu.id='peza-mobile-menu';
-                                                                                                            menu.setAttribute('role','navigation');
-                                                                                                                menu.innerHTML='<a href="#how">How it works</a><a href="#verticals">Platform</a><a href="#sellers">For Sellers</a><a href="#investors">Investors</a><a class="cta-link" href="#waitlist">Get Early Access</a>';
-                                                                                                                    mainDiv.insertBefore(menu,mainDiv.children[4]);
-                                                                                                                        btn.addEventListener('click',function(){
-                                                                                                                              var open=menu.classList.toggle('open');
-                                                                                                                                    btn.classList.toggle('active',open);
-                                                                                                                                          btn.setAttribute('aria-expanded',String(open));
-                                                                                                                                                document.body.style.overflow=open?'hidden':'';
-                                                                                                                                                    });
-                                                                                                                                                        menu.querySelectorAll('a').forEach(function(a){
-                                                                                                                                                              a.addEventListener('click',function(){
-                                                                                                                                                                      menu.classList.remove('open');
-                                                                                                                                                                              btn.classList.remove('active');
-                                                                                                                                                                                      btn.setAttribute('aria-expanded','false');
-                                                                                                                                                                                              document.body.style.overflow='';
-                                                                                                                                                                                                    });
-                                                                                                                                                                                                        });
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                            document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
-                                                                                                                                                                                                            })();`,
-                                }}
-                              />
-            </body>body></body>
+
+      <body>
+        {children}
+        <script
+          id="peza-mobile-nav"
+          dangerouslySetInnerHTML={{ __html: mobileNavScript }}
+        />
+      </body>
     </html>
   );
 }
