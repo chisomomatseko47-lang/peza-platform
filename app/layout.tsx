@@ -104,50 +104,49 @@ const jsonLd = {
 };
 const mobileNavScript =
   "(function(){" +
+  "var done=false;" +
   "function init(){" +
+  "if(done)return true;" +
   "var nav=document.querySelector('nav');" +
   "if(!nav)return false;" +
-  "var navChildren=[].slice.call(nav.children);" +
-  "if(navChildren.length<2)return false;" +
-  "var linksDiv=navChildren[1];" +
-  "if(linksDiv.id==='peza-nav-done')return true;" +
-  "linksDiv.id='peza-nav-done';" +
-  "linksDiv.classList.add('peza-desktop-nav');" +
+  "var kids=[].slice.call(nav.children);" +
+  "if(kids.length<2)return false;" +
+  "var ld=kids[1];" +
+  "if(ld.dataset.pezaDone)return true;" +
+  "ld.dataset.pezaDone='1';" +
+  "ld.classList.add('peza-desktop-nav');" +
   "var btn=document.createElement('button');" +
   "btn.id='peza-hamburger';" +
   "btn.setAttribute('aria-label','Menu');" +
   "btn.setAttribute('aria-expanded','false');" +
-  "for(var i=0;i<3;i++){var s=document.createElement('span');btn.appendChild(s);}" +
+  "for(var i=0;i<3;i++){btn.appendChild(document.createElement('span'));}" +
   "nav.appendChild(btn);" +
-  "var links=linksDiv.querySelectorAll('a');" +
-  "var menu=document.createElement('div');" +
-  "menu.id='peza-mobile-menu';" +
-  "links.forEach(function(a){" +
-  "var cl=a.cloneNode(true);" +
-  "if(a.textContent.trim().indexOf('Early Access')>-1)cl.className='cta-link';" +
-  "menu.appendChild(cl);" +
+  "var m=document.createElement('div');" +
+  "m.id='peza-mobile-menu';" +
+  "ld.querySelectorAll('a').forEach(function(a){" +
+  "var c=a.cloneNode(true);" +
+  "if(a.textContent.indexOf('Early Access')>-1)c.className='cta-link';" +
+  "m.appendChild(c);" +
   "});" +
-  "document.body.appendChild(menu);" +
+  "document.body.appendChild(m);" +
   "btn.addEventListener('click',function(){" +
-  "var o=menu.classList.toggle('open');" +
+  "var o=m.classList.toggle('open');" +
   "btn.setAttribute('aria-expanded',String(o));" +
   "btn.classList.toggle('active',o);" +
   "document.body.style.overflow=o?'hidden':'';" +
   "});" +
-  "menu.querySelectorAll('a').forEach(function(l){" +
+  "m.querySelectorAll('a').forEach(function(l){" +
   "l.addEventListener('click',function(){" +
-  "menu.classList.remove('open');" +
+  "m.classList.remove('open');" +
   "btn.setAttribute('aria-expanded','false');" +
   "btn.classList.remove('active');" +
   "document.body.style.overflow='';" +
   "});});" +
+  "done=true;" +
   "return true;" +
   "}" +
-  "function tryInit(n){" +
-  "if(init())return;" +
-  "if(n>0)setTimeout(function(){tryInit(n-1);},200);" +
-  "}" +
-  "tryInit(25);" +
+  "var t=setInterval(function(){if(init())clearInterval(t);},100);" +
+  "setTimeout(function(){clearInterval(t);},15000);" +
   "})();";
 
 export default function RootLayout({
