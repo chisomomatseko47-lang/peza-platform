@@ -104,20 +104,47 @@ const jsonLd = {
 };
 const mobileNavScript =
   "(function(){" +
-  "var h=document.getElementById('peza-hamburger');" +
-  "var m=document.getElementById('peza-mobile-menu');" +
-  "if(!h||!m)return;" +
-  "h.addEventListener('click',function(){" +
-  "var o=m.classList.toggle('open');" +
-  "h.setAttribute('aria-expanded',String(o));" +
+  "function init(){" +
+  "var nav=document.querySelector('nav');" +
+  "if(!nav)return;" +
+  "var navChildren=[].slice.call(nav.children);" +
+  "if(navChildren.length<2)return;" +
+  "var linksDiv=navChildren[1];" +
+  "if(linksDiv.id==='peza-nav-done')return;" +
+  "linksDiv.id='peza-nav-done';" +
+  "linksDiv.classList.add('peza-desktop-nav');" +
+  "var btn=document.createElement('button');" +
+  "btn.id='peza-hamburger';" +
+  "btn.setAttribute('aria-label','Menu');" +
+  "btn.setAttribute('aria-expanded','false');" +
+  "for(var i=0;i<3;i++){var s=document.createElement('span');btn.appendChild(s);}" +
+  "nav.appendChild(btn);" +
+  "var links=linksDiv.querySelectorAll('a');" +
+  "var menu=document.createElement('div');" +
+  "menu.id='peza-mobile-menu';" +
+  "links.forEach(function(a){" +
+  "var cl=a.cloneNode(true);" +
+  "if(a.textContent.trim().indexOf('Early Access')>-1)cl.className='cta-link';" +
+  "menu.appendChild(cl);" +
+  "});" +
+  "document.body.appendChild(menu);" +
+  "btn.addEventListener('click',function(){" +
+  "var o=menu.classList.toggle('open');" +
+  "btn.setAttribute('aria-expanded',String(o));" +
+  "btn.classList.toggle('active',o);" +
   "document.body.style.overflow=o?'hidden':'';" +
   "});" +
-  "m.querySelectorAll('a').forEach(function(l){" +
+  "menu.querySelectorAll('a').forEach(function(l){" +
   "l.addEventListener('click',function(){" +
-  "m.classList.remove('open');" +
-  "h.setAttribute('aria-expanded','false');" +
+  "menu.classList.remove('open');" +
+  "btn.setAttribute('aria-expanded','false');" +
+  "btn.classList.remove('active');" +
   "document.body.style.overflow='';" +
   "});});" +
+  "}" +
+  "if(document.readyState==='loading'){" +
+  "document.addEventListener('DOMContentLoaded',init);" +
+  "}else{init();}" +
   "})();";
 
 export default function RootLayout({
