@@ -225,13 +225,13 @@ export default function Home() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
             {[
               { e: "🛒", t: "SME Commerce", d: "Any Zambian business gets a WhatsApp storefront.", b: "Phase 1", c: G },
-              { e: "🌾", t: "AgriMarket", d: "Farmers list produce, buyers bid, live market prices.", b: "Phase 1", c: "#2de070" },
-              { e: "🚛", t: "Freight Booking", d: "Book a truck from Lusaka to Ndola or Livingstone.", b: "Phase 1", c: "#00c9a7" },
-              { e: "📈", t: "Price Broadcasting", d: "Real-time commodity prices pushed to subscribers.", b: "Phase 1", c: "#4da6ff" },
-              { e: "🏛", t: "Gov Services", d: "NRC, NAPSA, ZRA, business registration via WhatsApp.", b: "Phase 2", c: "#C1440E" },
-              { e: "🔔", t: "Smart Reminders", d: "Tax deadlines, licence renewals, restock alerts.", b: "Phase 2", c: "#a78bfa" },
-              { e: "📱", t: "USSD Access", d: "Full Peza experience via USSD on any basic phone.", b: "Phase 3", c: "#f472b6" },
+              { e: "📱", t: "USSD Access", d: "Full Peza experience via USSD on any basic phone.", b: "Phase 1", c: "#f472b6" },
               { e: "💳", t: "Mobile Payments", d: "Airtel Money and MTN MoMo integrated.", b: "Phase 1", c: G },
+              { e: "🌾", t: "AgriMarket", d: "Farmers list produce, buyers bid, live market prices.", b: "Phase 1", c: "#2de070" },
+              { e: "🚛", t: "Freight Booking", d: "Book a truck from Lusaka to Ndola or Livingstone.", b: "Phase 2", c: "#00c9a7" },
+              { e: "📈", t: "Price Broadcasting", d: "Real-time commodity prices pushed to subscribers.", b: "Phase 2", c: "#4da6ff" },
+              { e: "🏛", t: "Gov Services", d: "NRC, NAPSA, ZRA, business registration via WhatsApp.", b: "Phase 2", c: "#C1440E" },
+              { e: "🔔", t: "Smart Reminders", d: "Tax deadlines, licence renewals, restock alerts.", b: "Phase 3", c: "#a78bfa" },
             ].map((v, i) => (
               <div key={v.t} className={`rv card d${i % 4}`} style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,.06)", borderRadius: 16, padding: "22px 18px", transition: "all .3s", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: v.c, opacity: .75 }} />
@@ -344,6 +344,21 @@ export default function Home() {
             ))}
           </div>
           <a href="mailto:chisomo@kivara.co.zm" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: G, color: "#000", padding: "16px 28px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>Request Investor Deck →</a>
+
+          <div className="rv" style={{ maxWidth: 640, margin: "56px auto 0", textAlign: "left", background: "#050505", border: "1px solid rgba(255,255,255,.08)", borderRadius: 16, padding: 28 }}>
+            <span className="mono" style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#8a7f6e", display: "block", marginBottom: 14 }}>Modeled Revenue Projection — not actual results</span>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
+              <div>
+                <div className="serif" style={{ fontSize: 26, color: G, lineHeight: 1.1 }}>K90K–500K</div>
+                <p style={{ fontSize: 12, color: "#8a7f6e", marginTop: 4 }}>Month 12 · 1,000 active SMEs</p>
+              </div>
+              <div>
+                <div className="serif" style={{ fontSize: 26, color: G, lineHeight: 1.1 }}>K450K–2.5M</div>
+                <p style={{ fontSize: 12, color: "#8a7f6e", marginTop: 4 }}>Month 18 · 5,000 active SMEs</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.7, color: "#8a7f6e" }}>Range modeled on a 3–5% platform take rate and K3,000–K10,000 average monthly GMV per active seller. Full assumptions and sensitivity breakdown available in the investor deck.</p>
+          </div>
         </div>
       </section>
 
