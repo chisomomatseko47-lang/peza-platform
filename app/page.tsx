@@ -208,6 +208,7 @@ export default function Home() {
               <div className="mono" style={{ background: "#1f2c34", color: "#8696a0", alignSelf: "flex-start", padding: "9px 13px", borderRadius: 8, fontSize: 18, letterSpacing: 3 }}>···</div>
             </div>
           </div>
+          <p className="mono" style={{ fontSize: 9.5, color: "#4a4236", textAlign: "center", marginTop: 10 }}>Illustrative example — prices shown are for demonstration only</p>
         </div>
       </section>
 
@@ -275,7 +276,7 @@ export default function Home() {
       <section id="sellers" style={{ padding: "100px 0", background: "#0f0f0f" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
           <div>
-            <span className="rv mono" style={{ fontSize: 11, letterSpacing: "2.5px", textTransform: "uppercase", color: "#C1440E", display: "block", marginBottom: 12 }}>For Businesses</span>
+            <span className="rv mono" style={{ fontSize: 11, letterSpacing: "2.5px", textTransform: "uppercase", color: "#C1440E", display: "block", marginBottom: 12 }}>For Sellers</span>
             <h2 className="rv serif" style={{ fontSize: "clamp(28px,4vw,52px)", lineHeight: 1.1, marginBottom: 16 }}>Your storefront is already in your customers&apos; phones</h2>
             <p className="rv" style={{ fontSize: 15, lineHeight: 1.8, color: "#8a7f6e", marginBottom: 28 }}>17 million Zambians are on WhatsApp. Peza puts your business there — catalogue, orders, and Airtel Money payments. No website needed.</p>
             <ul className="rv" style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
