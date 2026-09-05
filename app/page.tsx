@@ -162,7 +162,7 @@ export default function Home() {
             <a href="#waitlist" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#25D366", color: "#000", padding: "16px 32px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}><WA /> Start on WhatsApp</a>
             <button onClick={() => setSellerOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: 10, background: G, color: "#000", padding: "16px 32px", borderRadius: 12, fontWeight: 700, fontSize: 15, border: "none" }}>List Your Business →</button>
             <a href="#how" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "transparent", color: "#e8e4dc", padding: "16px 32px", borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: "none", border: "1px solid rgba(232,228,220,.15)" }}>See how it works</a>
-            <a href="/shop" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #C8860A, #E8A020)", color: "#000", padding: "16px 32px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>🛍️ Shop Now →</a>
+            <a href="https://peza-africa.vercel.app/" target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #C8860A, #E8A020)", color: "#000", padding: "16px 32px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>🛍️ Shop Now →</a>
           </div>
 
           <div style={{ display: "flex", gap: 56, justifyContent: "center", flexWrap: "wrap", paddingTop: 48, borderTop: "1px solid rgba(255,255,255,.06)", opacity: 0, animation: "fadeUp .8s .85s forwards" }}>
@@ -343,7 +343,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <a href="mailto:chisomo@kivara.co.zm" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: G, color: "#000", padding: "16px 28px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>Request Investor Deck →</a>
+          <a href="https://docs.google.com/presentation/d/1WoeMgLU9ys5lGxGJI6sEvgLTXU0lPSXt/present" target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: G, color: "#000", padding: "16px 28px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>Request Investor Deck →</a>
 
           <div className="rv" style={{ maxWidth: 640, margin: "56px auto 0", textAlign: "left", background: "#050505", border: "1px solid rgba(255,255,255,.08)", borderRadius: 16, padding: 28 }}>
             <span className="mono" style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#8a7f6e", display: "block", marginBottom: 14 }}>Modeled Revenue Projection — not actual results</span>
