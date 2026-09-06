@@ -50,8 +50,8 @@ export default function NotFound() {
           </Link>
         </div>
         <div style={{ marginTop: 40, color: '#444', fontSize: 12 }}>
-          Need help? WhatsApp us or dial{' '}
-          <span style={{ color: '#f5a623', fontWeight: 700 }}>*384#</span>
+          Need help?{' '}
+          <a href="https://wa.me/260570230160" style={{ color: '#f5a623', fontWeight: 700 }}>Message us on WhatsApp</a>
         </div>
       </div>
     </div>

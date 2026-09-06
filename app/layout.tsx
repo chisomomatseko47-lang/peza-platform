@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Peza Zambia",
   },
   description:
-    "Peza is Zambia's leading e-commerce and WhatsApp commerce platform. Shop local businesses in Lusaka, Ndola, Kitwe & across Zambia. Pay with Airtel Money. No app needed — shop via WhatsApp or USSD *384#.",
+    "Peza is Zambia's leading e-commerce and WhatsApp commerce platform. Shop local businesses in Lusaka, Ndola, Kitwe & across Zambia. Pay with Airtel Money. No app needed — shop straight from WhatsApp.",
   keywords: [
     "Zambia online shopping",
     "buy online Zambia",
@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     "Lusaka online market",
     "Airtel Money shopping",
     "WhatsApp commerce Zambia",
-    "USSD shopping Zambia",
     "Zambian marketplace",
     "buy sell Zambia",
     "Peza Zambia",
@@ -65,7 +64,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Peza — Zambia's #1 Commerce Platform",
     description:
-      "Buy & sell on WhatsApp. Shop local Zambian businesses. Pay with Airtel Money. USSD available for all phones.",
+      "Buy & sell on WhatsApp. Shop local Zambian businesses. Pay with Airtel Money.",
     images: ["/og-image.png"],
     creator: "@PezaZambia",
     site: "@PezaZambia",

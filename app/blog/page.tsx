@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Blog — Zambia Commerce & Business Tips",
-  description: "Read the latest tips, stories and insights about buying and selling in Zambia. Learn how to grow your business with Peza, Airtel Money, WhatsApp commerce and USSD.",
+  description: "Read the latest tips, stories and insights about buying and selling in Zambia. Learn how to grow your business with Peza, Airtel Money, and WhatsApp commerce.",
   openGraph: {
     title: "Peza Blog — Zambia Commerce & Business Tips",
     description: "Tips and stories for Zambian entrepreneurs and shoppers.",
@@ -34,13 +34,6 @@ const POSTS: BlogPost[] = [
     excerpt: "Everything you need to know to list your first product, accept Airtel Money payments, and reach buyers across Lusaka, Ndola and Kitwe.",
     category: "Seller Guides", author: "Peza Team", date: "June 1, 2025", readTime: "6 min read", emoji: "🏪",
     tags: ["selling", "Zambia", "Airtel Money", "WhatsApp"],
-  },
-  {
-    id: 2, slug: "ussd-shopping-guide-zambia",
-    title: "How to Shop on Peza Without a Smartphone — USSD Guide",
-    excerpt: "No internet? No problem. Learn how to browse products, place orders and pay using just your basic phone and our *384# USSD service.",
-    category: "Buyer Guides", author: "Chisomo M.", date: "May 25, 2025", readTime: "4 min read", emoji: "📟",
-    tags: ["USSD", "feature phones", "Zambia", "shopping"],
   },
   {
     id: 3, slug: "top-selling-products-zambia-2025",
