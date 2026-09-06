@@ -116,7 +116,7 @@ export default function Home() {
 
       {/* Nav */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: 64, padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", background: scrolled ? "rgba(5,5,5,.93)" : "transparent", backdropFilter: scrolled ? "blur(24px)" : "none", borderBottom: scrolled ? "1px solid rgba(255,255,255,.06)" : "1px solid transparent", transition: "all .4s" }}>
-        <a href="#" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src="/peza-logo.png" alt="Peza" style={{ height: 38, width: "auto", filter: "drop-shadow(0 0 10px rgba(200,134,10,.35))" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           <span style={{ color: G, fontWeight: 800, fontSize: 22, letterSpacing: 3, marginLeft: 8 }}>PEZA</span>
         </a>
