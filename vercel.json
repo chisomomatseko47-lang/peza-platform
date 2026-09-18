@@ -6,5 +6,11 @@
       "maxDuration": 30
     }
   },
-  "regions": ["fra1"]
+  "regions": ["fra1"],
+  "crons": [
+    {
+      "path": "/api/cron/retry-queue",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

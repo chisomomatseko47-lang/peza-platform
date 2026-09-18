@@ -32,6 +32,9 @@ RULES:
 - For payments, ALWAYS remind user to have Airtel Money ready`
 
 // ── Infobip Send ──────────────────────────────────────────────────────────────
+// FEATURE: offline/retry queue — if Infobip reports the send failed (or the
+// fetch itself throws, e.g. during load shedding / connectivity gaps), queue
+// the message instead of dropping it silently.
 async function send(to: string, msg: string) {
   try {
     const r = await fetch(`https://${INFOBIP_BASE_URL}/whatsapp/1/message/text`, {
@@ -44,11 +47,56 @@ async function send(to: string, msg: string) {
       body: JSON.stringify({ from: INFOBIP_WA_NUMBER, to, content: { text: msg } })
     })
     const d = await r.json()
-    console.log(`📤 [${to}] sent:`, d?.messages?.[0]?.status?.name || 'ok')
+    const status = d?.messages?.[0]?.status
+    console.log(`📤 [${to}] sent:`, status?.name || 'ok')
+    if (status?.groupName === 'REJECTED' || status?.groupName === 'UNDELIVERABLE') {
+      await queueForRetry(to, msg)
+    }
     return d
   } catch (e) {
     console.error('Send error:', e)
+    await queueForRetry(to, msg)
   }
+}
+
+async function queueForRetry(to: string, msg: string) {
+  try {
+    await db().from('message_retry_queue').insert({ whatsapp_number: to, payload: { text: msg } })
+  } catch (e) {
+    console.error('queueForRetry error:', e)
+  }
+}
+
+// ── Ops escalation number (human support) ─────────────────────────────────────
+const OPS_WHATSAPP_NUMBER = process.env.OPS_WHATSAPP_NUMBER || ''
+
+// ── FEATURE: Language strings ──────────────────────────────────────────────────
+// Only the highest-traffic strings are translated for now (greeting, main menu,
+// help). Add more keys here as you go — everything else falls back to English,
+// and the AI fallback reply is instructed with the customer's language directly.
+type Lang = 'en' | 'bem' | 'nya' | 'toi'
+
+const LANG_PROMPT = `Mwabonwa! Welcome to Peza 🇿🇲\n\nReply with a number for your language:\n1️⃣ English\n2️⃣ Bemba\n3️⃣ Nyanja\n4️⃣ Tonga`
+
+const LANG_CODES: Record<string, Lang> = { '1': 'en', '2': 'bem', '3': 'nya', '4': 'toi' }
+
+const STRINGS: Record<string, Record<Lang, string>> = {
+  welcomeBack: {
+    en: 'Welcome back! 👋',
+    bem: 'Mwaiseni na kabili! 👋',
+    nya: 'Takulandirani kachiwiri! 👋',
+    toi: 'Mwabuka buti kabili! 👋',
+  },
+  help: {
+    en: `*Peza Help* 🆘\n${'─────────────────'}\n• Type *menu* — main menu\n• Type *cart* — view cart\n• Type *0* — go back\n• Type *track* — track orders\n• Type *reorder* — reorder last order\n${'─────────────────'}\n🌐 peza.africa\n📧 hello@peza.africa`,
+    bem: `*Ukwafwilisha kwa Peza* 🆘\n${'─────────────────'}\n• Lemba *menu* — imenyu ikalamba\n• Lemba *cart* — mona ifintu\n• Lemba *0* — bwelela kunuma\n${'─────────────────'}\n🌐 peza.africa`,
+    nya: `*Chithandizo cha Peza* 🆘\n${'─────────────────'}\n• Lembani *menu* — menyu yaikulu\n• Lembani *cart* — onani zinthu\n• Lembani *0* — bwererani\n${'─────────────────'}\n🌐 peza.africa`,
+    toi: `*Lugwasyo lwa Peza* 🆘\n${'─────────────────'}\n• Lemba *menu* — menyu mpati\n• Lemba *cart* — bona zintu\n• Lemba *0* — pilukila musule\n${'─────────────────'}\n🌐 peza.africa`,
+  },
+}
+
+function tr(key: keyof typeof STRINGS, lang: Lang) {
+  return STRINGS[key][lang] ?? STRINGS[key].en
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
@@ -108,6 +156,11 @@ async function ensureCustomer(phone: string, name?: string) {
   return await getCustomer(phone)
 }
 
+function getLang(customer: { preferred_language?: string } | null): Lang {
+  const l = customer?.preferred_language
+  return (l === 'bem' || l === 'nya' || l === 'toi') ? l : 'en'
+}
+
 async function getBusiness(phone: string) {
   const { data } = await db().from('businesses').select('*').eq('whatsapp_number', phone).single()
   return data
@@ -121,7 +174,7 @@ async function getBusinesses(category?: string, limit = 8) {
 }
 
 async function getProducts(businessId: string, limit = 10) {
-  const { data } = await db().from('products')
+  const { data } = await db().from('bot_products')
     .select('id,name,price,description,is_available')
     .eq('business_id', businessId)
     .eq('is_available', true)
@@ -130,26 +183,26 @@ async function getProducts(businessId: string, limit = 10) {
 }
 
 async function getProduct(productId: string) {
-  const { data } = await db().from('products').select('*').eq('id', productId).single()
+  const { data } = await db().from('bot_products').select('*').eq('id', productId).single()
   return data
 }
 
-async function createOrder(customerId: string, businessId: string, cart: CartItem[], address: string) {
+async function createOrder(customerId: string, businessId: string, cart: CartItem[], address: string, paymentMethod: string) {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
-  const { data } = await db().from('orders').insert({
+  const { data } = await db().from('bot_orders').insert({
     customer_id: customerId,
     business_id: businessId,
     status: 'pending',
     total_amount: total,
     delivery_address: address,
-    payment_method: 'airtel_money',
+    payment_method: paymentMethod,
     items: cart
   }).select().single()
   return data
 }
 
 async function getOrders(customerId: string, limit = 5) {
-  const { data } = await db().from('orders')
+  const { data } = await db().from('bot_orders')
     .select('*, businesses(name)')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
@@ -157,17 +210,36 @@ async function getOrders(customerId: string, limit = 5) {
   return data || []
 }
 
+// FEATURE: group buying — join an open group buy; auto-fills once quantity target hit.
+async function joinGroupBuy(groupBuyId: string, phone: string, qty: number) {
+  const { data: gb } = await db().from('group_buys').select('*').eq('id', groupBuyId).eq('status', 'open').single()
+  if (!gb) return null
+  await db().from('group_buy_participants').insert({ group_buy_id: groupBuyId, whatsapp_number: phone, quantity: qty })
+  const newQty = gb.current_quantity + qty
+  const filled = newQty >= gb.target_quantity
+  await db().from('group_buys').update({
+    current_quantity: newQty,
+    status: filled ? 'filled' : 'open'
+  }).eq('id', groupBuyId)
+  return { filled, remaining: Math.max(gb.target_quantity - newQty, 0), unitPrice: gb.unit_price_at_target }
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CartItem { id: string; name: string; price: number; qty: number; businessId: string; businessName: string }
 interface Conv { state: string; cart: CartItem[]; context: Record<string, unknown> }
 
 // ── AI reply ──────────────────────────────────────────────────────────────────
-async function ai(prompt: string, extra = '') {
+const LANG_NAMES: Record<Lang, string> = { en: 'English', bem: 'Bemba', nya: 'Nyanja', toi: 'Tonga' }
+
+async function ai(prompt: string, extra = '', lang: Lang = 'en') {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+    const langInstruction = lang !== 'en'
+      ? `\n\nIMPORTANT: Reply in ${LANG_NAMES[lang]}, not English. Keep it natural and conversational, not a stiff translation.`
+      : ''
     const r = await client.messages.create({
       model: 'claude-haiku-4-5', max_tokens: 200,
-      system: PEZA_AI + (extra ? '\n\nCONTEXT: ' + extra : ''),
+      system: PEZA_AI + langInstruction + (extra ? '\n\nCONTEXT: ' + extra : ''),
       messages: [{ role: 'user', content: prompt }]
     })
     return (r.content[0] as { type: string; text: string }).text
@@ -245,7 +317,33 @@ async function handle(phone: string, raw: string): Promise<string> {
   const cart: CartItem[] = conv?.cart || []
   const ctx = conv?.context || {}
 
-  await ensureCustomer(phone)
+  const customerRecord = await ensureCustomer(phone)
+
+  // FEATURE: language selection — brand new customers pick a language before
+  // anything else. Existing customers keep whatever they already chose.
+  if (customerRecord && !customerRecord.preferred_language && state === 'IDLE') {
+    await setConv(phone, { state: 'LANG_SELECT' })
+    return LANG_PROMPT
+  }
+  if (state === 'LANG_SELECT') {
+    const chosen = LANG_CODES[msg]
+    if (!chosen) return LANG_PROMPT
+    await db().from('customers').update({ preferred_language: chosen }).eq('whatsapp_number', phone)
+    await setConv(phone, { state: 'MAIN_MENU', context: {} })
+    return `${tr('welcomeBack', chosen)} Welcome to *Peza* 🇿🇲\nZambia's #1 WhatsApp marketplace.\n\n${mainMenu()}`
+  }
+  const lang = getLang(customerRecord)
+
+  // FEATURE: help escalation — distinct from the self-serve 'help' command
+  // below. These keywords mean the person wants a human, not the menu.
+  const ESCALATION_KEYWORDS = ['problem', 'dispute', 'complaint', 'agent', 'human', 'vwilani']
+  if (ESCALATION_KEYWORDS.some(k => msg === k || msg.includes(k))) {
+    await db().from('support_escalations').insert({ whatsapp_number: phone, message: input })
+    if (OPS_WHATSAPP_NUMBER) {
+      await send(OPS_WHATSAPP_NUMBER, `🆘 *Support escalation*\nFrom: ${phone}\nMsg: ${input}`)
+    }
+    return `🆘 We've flagged this for our team — someone will reach out shortly.\n\nType *menu* to keep browsing in the meantime.`
+  }
 
   // ── GLOBAL COMMANDS ──────────────────────────────────────────────────────
   // FIX: Always reset BOTH state and context on menu/back to prevent stale
@@ -257,8 +355,7 @@ async function handle(phone: string, raw: string): Promise<string> {
 
   if (['hi', 'hello', 'mwabonwa', 'hey', 'start', 'menu', 'home', 'bwanji'].includes(msg)) {
     await setConv(phone, { state: 'MAIN_MENU', cart: [], context: {} })
-    const customer = await getCustomer(phone)
-    const greeting = customer?.name ? `Mwabonwa ${customer.name}! 👋` : `Mwabonwa! 👋`
+    const greeting = customerRecord?.name ? `Mwabonwa ${customerRecord.name}! 👋` : `Mwabonwa! 👋`
     return `${greeting} Welcome to *Peza* 🇿🇲\nZambia's #1 WhatsApp marketplace.\n\n${mainMenu()}`
   }
 
@@ -273,7 +370,7 @@ async function handle(phone: string, raw: string): Promise<string> {
   }
 
   if (msg === 'help') {
-    return `*Peza Help* 🆘\n${divider}\n• Type *menu* — main menu\n• Type *cart* — view cart\n• Type *0* — go back\n• Type *track* — track orders\n• Type *reorder* — reorder last order\n${divider}\n🌐 peza.africa\n📧 hello@peza.africa`
+    return tr('help', lang)
   }
 
   if (msg === 'track') return await trackOrders(phone)
@@ -367,10 +464,21 @@ async function handle(phone: string, raw: string): Promise<string> {
     if (input.length < 5 || /^\d+$/.test(input)) {
       return `⚠️ Please enter a valid delivery address.\n\nExample:\n*Plot 45 Kabangwe Road, Lusaka*\nor\n*Collect from merchant*\n\nType your address 👇`
     }
-    await setConv(phone, { state: 'CHECKOUT_CONFIRM', context: { ...ctx, address: input } })
+    await setConv(phone, { state: 'CHECKOUT_PAYMENT', context: { ...ctx, address: input } })
+    return `💳 *How will you pay?*\n${divider}\n1. Airtel Money\n2. MTN Money\n3. Cash on Delivery\n${divider}\nReply with a number 👇`
+  }
+
+  // FEATURE: cash on delivery — a third payment option alongside the two
+  // mobile money rails, since not every buyer wants to pay upfront on WhatsApp.
+  if (state === 'CHECKOUT_PAYMENT') {
+    const methods: Record<string, string> = { '1': 'airtel_money', '2': 'mtn_money', '3': 'cash_on_delivery' }
+    const method = methods[msg]
+    if (!method) return `Please reply with 1, 2, or 3.\n\n1. Airtel Money\n2. MTN Money\n3. Cash on Delivery`
+    await setConv(phone, { state: 'CHECKOUT_CONFIRM', context: { ...ctx, paymentMethod: method } })
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
     const items = cart.map(i => `• ${i.name} x${i.qty} = K${i.price * i.qty}`).join('\n')
-    return `📋 *Order Summary*\n${divider}\n${items}\n${divider}\n*Total: K${total}*\n*Deliver to:* ${input}\n*Payment:* Airtel Money\n${divider}\nType *CONFIRM* to place order\nType *0* to cancel`
+    const methodLabel: Record<string, string> = { airtel_money: 'Airtel Money', mtn_money: 'MTN Money', cash_on_delivery: 'Cash on Delivery' }
+    return `📋 *Order Summary*\n${divider}\n${items}\n${divider}\n*Total: K${total}*\n*Deliver to:* ${ctx.address}\n*Payment:* ${methodLabel[method]}\n${divider}\nType *CONFIRM* to place order\nType *0* to cancel`
   }
 
   if (state === 'CHECKOUT_CONFIRM') {
@@ -436,7 +544,7 @@ async function handle(phone: string, raw: string): Promise<string> {
         biz = newBiz
       }
       if (biz) {
-        await db().from('products').insert({
+        await db().from('bot_products').insert({
           business_id: biz.id,
           name: crop,
           description: `${qty} available in ${location}`,
@@ -453,7 +561,7 @@ async function handle(phone: string, raw: string): Promise<string> {
 
   if (state === 'AGRI_BUY_CROP') {
     if (!input || input.length < 2) return `Please enter a crop name.\n\nExample: *Maize*\n\nType it now 👇${back}`
-    const { data: listings } = await db().from('products')
+    const { data: listings } = await db().from('bot_products')
       .select('name,description,price,businesses(name,whatsapp_number,location)')
       .ilike('name', `%${input}%`)
       .eq('is_available', true)
@@ -587,7 +695,7 @@ async function handle(phone: string, raw: string): Promise<string> {
     }
 
     if (businessId) {
-      await db().from('products').insert({
+      await db().from('bot_products').insert({
         business_id: businessId,
         name: productName,
         price,
@@ -597,6 +705,30 @@ async function handle(phone: string, raw: string): Promise<string> {
 
     await setConv(phone, { state: 'MAIN_MENU', context: {} })
     return `✅ *${productName}* listed at K${price}!\n\n🎊 Your Peza store is LIVE!\n${divider}\n📱 Manage your store:\npeza.africa/dashboard\n\n📦 To add more products, visit your dashboard.\n\nShare your store:\nwa.me/447860088970\n\nCustomers can now find and order from you!\n\nZikomo & welcome to Peza! 🇿🇲🙏\n\nType *menu* to continue.`
+  }
+
+  // ── GROUP BUY ─────────────────────────────────────────────────────────────
+  if (state === 'GROUP_BUY_MENU') {
+    const { data: buys } = await db()
+      .from('group_buys').select('id, target_quantity, current_quantity, unit_price_at_target')
+      .eq('status', 'open').limit(6)
+    const idx = parseInt(msg) - 1
+    if (buys && !isNaN(idx) && idx >= 0 && idx < buys.length) {
+      await setConv(phone, { state: 'GROUP_BUY_QTY', context: { groupBuyId: buys[idx].id } })
+      return `How many would you like to reserve?\n\nExample: *1*\n\nType a number 👇${back}`
+    }
+    return `Please reply with a number from the list above.\n\n${await groupBuyMenu()}`
+  }
+
+  if (state === 'GROUP_BUY_QTY') {
+    const qty = parseInt(msg)
+    if (isNaN(qty) || qty < 1) return `Please enter a valid quantity, e.g. *1*.${back}`
+    const result = await joinGroupBuy(ctx.groupBuyId as string, phone, qty)
+    await setConv(phone, { state: 'MAIN_MENU', context: {} })
+    if (!result) return `Sorry, that group buy is no longer available.\n\nType *menu* to continue.`
+    return result.filled
+      ? `🎉 *Group Buy Unlocked!*\n\nEnough buyers joined — everyone gets K${result.unitPrice} each. We'll message you to arrange payment and delivery.\n\nZikomo! 🙏 Type *menu* to continue.`
+      : `✅ You're in! ${result.remaining} more needed to unlock the group price of K${result.unitPrice}.\n\nWe'll notify you once it's filled.\n\nType *menu* to continue.`
   }
 
   // ── MY ACCOUNT ────────────────────────────────────────────────────────────
@@ -610,14 +742,66 @@ async function handle(phone: string, raw: string): Promise<string> {
     if (msg === '4') {
       const biz = await getBusiness(phone)
       if (biz) {
-        await setConv(phone, { state: 'MAIN_MENU' })
-        return `🏪 *Your Business:* ${biz.name}\n📍 ${biz.location || 'Not set'}\n📦 Manage: peza.africa/dashboard${back}`
+        await setConv(phone, { state: 'BIZ_MENU' })
+        return `🏪 *${biz.name}*\n📍 ${biz.location || 'Not set'}\n${divider}\n1. 📦 Manage on dashboard\n2. 👥 Start a Group Buy\n${divider}\nReply with a number 👇${back}`
       } else {
         return await startSellerOnboarding(phone)
       }
     }
     // FIX: Invalid input re-prompts account menu.
     return `Please reply with a number 1–4.\n\n${await myAccountMenu(phone)}`
+  }
+
+  // FEATURE: seller-side group buy creation — the missing half of feature 6
+  // (buyer-side joining was already built). A seller picks one of their own
+  // products, sets a target quantity and the unlocked bulk price.
+  if (state === 'BIZ_MENU') {
+    if (msg === '1') {
+      await setConv(phone, { state: 'MAIN_MENU' })
+      return `📦 Manage your store:\npeza.africa/dashboard${back}`
+    }
+    if (msg === '2') {
+      const biz = await getBusiness(phone)
+      if (!biz) return `Error finding your business. Type *menu* to restart.`
+      const products = await getProducts(biz.id, 10)
+      if (!products.length) return `You don't have any products listed yet.\n\nAdd products via peza.africa/dashboard first, then come back to start a group buy.${back}`
+      await setConv(phone, { state: 'GROUP_BUY_CREATE_PRODUCT', context: { businessId: biz.id } })
+      const list = products.map((p, i) => `${i + 1}. *${p.name}* — K${p.price}`).join('\n')
+      return `👥 *Start a Group Buy*\n${divider}\nWhich product?\n${divider}\n${list}\n${divider}\nReply with a number 👇${back}`
+    }
+    return `Please reply with a number 1–2.`
+  }
+
+  if (state === 'GROUP_BUY_CREATE_PRODUCT') {
+    const bizId = ctx.businessId as string
+    const products = await getProducts(bizId, 10)
+    const idx = parseInt(msg) - 1
+    if (isNaN(idx) || idx < 0 || idx >= products.length) return `Please reply with a number from the list above.${back}`
+    const p = products[idx]
+    await setConv(phone, { state: 'GROUP_BUY_CREATE_QTY', context: { ...ctx, productId: p.id, productName: p.name, basePrice: p.price } })
+    return `✅ *${p.name}* (normally K${p.price})\n\nHow many units need to be reserved to unlock the group price?\n\nExample: *10*\n\nType a number 👇${back}`
+  }
+
+  if (state === 'GROUP_BUY_CREATE_QTY') {
+    const qty = parseInt(msg)
+    if (isNaN(qty) || qty < 2) return `Please enter a valid target, e.g. *10* (at least 2).${back}`
+    await setConv(phone, { state: 'GROUP_BUY_CREATE_PRICE', context: { ...ctx, targetQuantity: qty } })
+    return `✅ Target: *${qty} units*\n\nWhat's the unlocked price per unit? (Normally K${ctx.basePrice})\n\nExample: *150*\n\nType a number 👇${back}`
+  }
+
+  if (state === 'GROUP_BUY_CREATE_PRICE') {
+    const price = parseFloat(msg.replace(/[^0-9.]/g, ''))
+    if (isNaN(price) || price <= 0) return `Please enter a valid price, e.g. *150*.${back}`
+    await db().from('group_buys').insert({
+      product_id: ctx.productId,
+      business_id: ctx.businessId,
+      target_quantity: ctx.targetQuantity,
+      current_quantity: 0,
+      unit_price_at_target: price,
+      status: 'open'
+    })
+    await setConv(phone, { state: 'MAIN_MENU', context: {} })
+    return `🎉 *Group Buy created!*\n${divider}\n${ctx.productName}: K${price} each\nTarget: ${ctx.targetQuantity} units\n${divider}\nBuyers can now find it under *Group Buy* in the main menu.\n\nType *menu* to continue.`
   }
 
   if (state === 'ACCOUNT_NAME') {
@@ -632,7 +816,7 @@ async function handle(phone: string, raw: string): Promise<string> {
   const bizContext = await getBusiness(phone)
   const customerCtx = await getCustomer(phone)
   const contextStr = `User phone: ${phone}. State: ${state}. Is merchant: ${!!bizContext}. Customer name: ${customerCtx?.name || 'unknown'}. Cart items: ${cart.length}.`
-  const reply = await ai(input, contextStr)
+  const reply = await ai(input, contextStr, lang)
   return reply + '\n\nType *menu* for main menu 📱'
 }
 
@@ -666,8 +850,12 @@ async function routeMainMenu(phone: string, msg: string, cart: CartItem[], ctx: 
   if (msg === '7') {
     return await myAccount(phone)
   }
-  // ── Future options (8, 9, 10…) go here ──────────────────────────────────
-  // if (msg === '8') { ... }
+  // FEATURE: group buying (Chilimba-style pooled orders) — option 8.
+  if (msg === '8') {
+    await setConv(phone, { state: 'GROUP_BUY_MENU' })
+    return await groupBuyMenu()
+  }
+  // ── Future options (9, 10…) go here ──────────────────────────────────
   // if (msg === '9') { ... }
 
   // Unknown input from main menu — re-prompt cleanly.
@@ -679,6 +867,8 @@ async function handleCheckoutConfirm(phone: string, cart: CartItem[], ctx: Recor
   const customer = await getCustomer(phone)
   if (!customer) return 'Error finding your account. Type *menu* to restart.'
   const address = ctx.address as string
+  const paymentMethod = (ctx.paymentMethod as string) || 'airtel_money'
+  const isFirstOrder = (await getOrders(customer.id, 1)).length === 0
   const bizGroups = cart.reduce((acc: Record<string, CartItem[]>, item) => {
     if (!acc[item.businessId]) acc[item.businessId] = []
     acc[item.businessId].push(item)
@@ -686,25 +876,68 @@ async function handleCheckoutConfirm(phone: string, cart: CartItem[], ctx: Recor
   }, {})
   const orderIds: string[] = []
   for (const [bizId, items] of Object.entries(bizGroups)) {
-    const order = await createOrder(customer.id, bizId, items, address)
+    const order = await createOrder(customer.id, bizId, items, address, paymentMethod)
     if (order) {
       orderIds.push(order.id.slice(0, 8).toUpperCase())
       const biz = await db().from('businesses').select('whatsapp_number,name').eq('id', bizId).single()
       if (biz.data?.whatsapp_number) {
         const orderItems = items.map(i => `• ${i.name} x${i.qty} (K${i.price * i.qty})`).join('\n')
         const orderTotal = items.reduce((s, i) => s + i.price * i.qty, 0)
-        await send(biz.data.whatsapp_number, `🔔 *New Peza Order!*\n${divider}\nCustomer: ${phone}\nDelivery: ${address}\n${divider}\n${orderItems}\n${divider}\n*Total: K${orderTotal}*\n\nReply to confirm with customer.`)
+        const payLabel: Record<string, string> = { airtel_money: 'Airtel Money', mtn_money: 'MTN Money', cash_on_delivery: 'Cash on Delivery' }
+        await send(biz.data.whatsapp_number, `🔔 *New Peza Order!*\n${divider}\nCustomer: ${phone}\nDelivery: ${address}\nPayment: ${payLabel[paymentMethod] || paymentMethod}\n${divider}\n${orderItems}\n${divider}\n*Total: K${orderTotal}*\n\nReply to confirm with customer.`)
       }
     }
   }
   await setConv(phone, { state: 'MAIN_MENU', cart: [], context: {} })
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0)
-  return `🎉 *Order Placed!*\n${divider}\nOrder ID: #${orderIds[0]}\nTotal: *K${total}*\nDelivery: ${address}\n${divider}\n💳 *Pay via Airtel Money:*\nDial *115# → Send Money → Pay Bill\nMerchant will contact you shortly!\n\nZikomo! 🙏 Type *menu* to continue.`
+
+  // FEATURE: airtime/data reward on a customer's very first completed order.
+  if (isFirstOrder) {
+    await grantReward(phone, 'first_order', 5)
+  }
+  const rewardLine = isFirstOrder ? `\n🎁 First order bonus: K5 airtime coming your way!\n` : ''
+
+  let paymentLine = `💳 *Pay via Airtel Money:*\nDial *115# → Send Money → Pay Bill\nMerchant will contact you shortly!`
+  if (paymentMethod === 'mtn_money') {
+    paymentLine = `💳 *Pay via MTN Money:*\nDial *303# → Send Money → Pay Bill\nMerchant will contact you shortly!`
+  } else if (paymentMethod === 'cash_on_delivery') {
+    paymentLine = `💵 *Cash on Delivery selected.*\nHave the exact amount ready for the rider on delivery.`
+  }
+  return `🎉 *Order Placed!*\n${divider}\nOrder ID: #${orderIds[0]}\nTotal: *K${total}*\nDelivery: ${address}\n${divider}\n${paymentLine}\n${rewardLine}\nZikomo! 🙏 Type *menu* to continue.`
+}
+
+// FEATURE: airtime/data rewards — logs the reward; actual disbursement needs
+// each mobile money provider's separate airtime top-up API/credentials.
+async function grantReward(phone: string, reason: string, amount: number) {
+  try {
+    await db().from('reward_payouts').insert({ whatsapp_number: phone, reason, amount, status: 'pending' })
+  } catch (e) {
+    console.error('grantReward error:', e)
+  }
 }
 
 // ── Helper functions ──────────────────────────────────────────────────────────
 function mainMenu() {
-  return `*Peza Main Menu* 🇿🇲\n${divider}\n1️⃣ 🛒 Shop & Order\n2️⃣ 🌾 AgriMarket\n3️⃣ 🚛 Book Freight\n4️⃣ 📊 Market Prices\n5️⃣ 🏛 Gov Services\n6️⃣ 🏪 Sell on Peza\n7️⃣ 👤 My Account\n${divider}\nReply with a number 👇`
+  return `*Peza Main Menu* 🇿🇲\n${divider}\n1️⃣ 🛒 Shop & Order\n2️⃣ 🌾 AgriMarket\n3️⃣ 🚛 Book Freight\n4️⃣ 📊 Market Prices\n5️⃣ 🏛 Gov Services\n6️⃣ 🏪 Sell on Peza\n7️⃣ 👤 My Account\n8️⃣ 👥 Group Buy\n${divider}\nReply with a number 👇`
+}
+
+// FEATURE: group buying — buyers pool orders on one product to unlock a
+// bulk/lower price once enough people join.
+async function groupBuyMenu() {
+  const { data: buys } = await db()
+    .from('group_buys')
+    .select('id, target_quantity, current_quantity, unit_price_at_target, bot_products(name, price), businesses(name)')
+    .eq('status', 'open')
+    .limit(6)
+  if (!buys || !buys.length) {
+    return `👥 *Group Buy*\n${divider}\nNo group buys open right now.\n\nAsk a seller to start one, or check back soon!${back}`
+  }
+  const list = buys.map((b: any, i: number) => {
+    const p = Array.isArray(b.products) ? b.products[0] : b.products
+    const remaining = b.target_quantity - b.current_quantity
+    return `${i + 1}. *${p?.name || 'Product'}* — K${b.unit_price_at_target} each\n   ${remaining} more needed to unlock`
+  }).join('\n\n')
+  return `👥 *Open Group Buys*\n${divider}\n${list}\n${divider}\nReply with a number to join 👇${back}`
 }
 
 function shopCategory() {
@@ -781,6 +1014,34 @@ async function myAccountMenu(phone: string) {
   return `👤 *My Account*\n${divider}\n📱 ${phone}\n👋 ${name}\n${bizLine}\n${divider}\n1. 📦 Track my orders\n2. 🔄 Reorder last order\n3. ✏️ Update my name\n4. 🏪 My business\n${divider}\nReply with a number 👇\n\nType *0* to go back`
 }
 
+// FEATURE: voice notes — transcribe inbound audio, then run the transcript
+// through the exact same handle() used for typed text. Requires
+// OPENAI_API_KEY (Whisper) since @anthropic-ai/sdk doesn't do audio input.
+async function transcribeVoiceNote(mediaUrl: string): Promise<string | null> {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+  if (!OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY not set — cannot transcribe voice notes')
+    return null
+  }
+  try {
+    const audioRes = await fetch(mediaUrl, { headers: { 'Authorization': `App ${INFOBIP_API_KEY}` } })
+    const audioBuf = await audioRes.arrayBuffer()
+    const form = new FormData()
+    form.append('file', new Blob([audioBuf]), 'voice.ogg')
+    form.append('model', 'whisper-1')
+    const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+      body: form
+    })
+    const d = await r.json()
+    return d?.text || null
+  } catch (e) {
+    console.error('transcribeVoiceNote error:', e)
+    return null
+  }
+}
+
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
@@ -789,7 +1050,23 @@ export async function POST(request: NextRequest) {
     const results = body?.results || []
     for (const result of results) {
       const from = result?.from
-      const message = result?.message?.text || result?.message?.body || ''
+      const msgType = result?.message?.type
+      let message = result?.message?.text || result?.message?.body || ''
+
+      // FEATURE: voice notes — Infobip sends inbound audio with type AUDIO
+      // and a media URL. NOTE: verify the exact field name against your
+      // Infobip WhatsApp inbound payload docs/logs once live — this uses
+      // the documented `message.url`, but confirm before relying on it.
+      if (!message && msgType === 'AUDIO' && result?.message?.url) {
+        const transcript = await transcribeVoiceNote(result.message.url)
+        if (!transcript) {
+          if (from) await send(from, `😔 Sorry, I couldn't understand that voice note. Please try typing instead, or send it again.`)
+          continue
+        }
+        message = transcript
+        console.log(`🎙️ [${from}] transcribed: ${message}`)
+      }
+
       if (!from || !message) continue
       console.log(`📱 [${from}]: ${message}`)
       const reply = await handle(from, message)
@@ -804,9 +1081,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    status: 'Peza WhatsApp Commerce Bot v3.1 🚀',
+    status: 'Peza WhatsApp Commerce Bot v3.2 🚀',
     platform: 'peza.africa',
-    features: ['SME Commerce', 'AgriMarket', 'Freight', 'Market Prices', 'Gov Services', 'Seller Onboarding', 'Cart & Checkout', 'Order Tracking'],
+    features: ['SME Commerce', 'AgriMarket', 'Freight', 'Market Prices', 'Gov Services', 'Seller Onboarding', 'Cart & Checkout', 'Order Tracking', 'Group Buying', 'Voice Notes', 'Multi-language', 'Cash on Delivery'],
     powered_by: 'Kivara Technologies'
   })
 }
