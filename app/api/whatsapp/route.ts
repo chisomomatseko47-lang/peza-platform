@@ -311,8 +311,18 @@ const back = '\n\nType *0* to go back | *menu* to start over'
 // ── MAIN HANDLER ─────────────────────────────────────────────────────────────
 async function handle(phone: string, raw: string): Promise<string> {
   const conv = await getConv(phone) as Conv
-  const msg = raw.trim().toLowerCase()      // for keyword/number matching only
-  const input = raw.trim()                  // for free-text capture (preserves case)
+
+  // FEATURE: product photos — the POST handler prefixes inbound WhatsApp
+  // images with this sentinel after uploading them to Supabase Storage.
+  // Strip it out here so normal msg/input parsing isn't polluted with a URL,
+  // and expose it separately for states that expect a photo (e.g. seller
+  // product listing).
+  const IMAGE_SENTINEL = '__IMAGE_URL__:'
+  const incomingImageUrl = raw.startsWith(IMAGE_SENTINEL) ? raw.slice(IMAGE_SENTINEL.length).trim() : null
+  const effectiveRaw = incomingImageUrl ? '[photo]' : raw
+
+  const msg = effectiveRaw.trim().toLowerCase()      // for keyword/number matching only
+  const input = effectiveRaw.trim()                  // for free-text capture (preserves case)
   const state = conv?.state || 'IDLE'
   const cart: CartItem[] = conv?.cart || []
   const ctx = conv?.context || {}
@@ -687,11 +697,25 @@ async function handle(phone: string, raw: string): Promise<string> {
 
   if (state === 'SELLER_FIRST_PRICE') {
     const productName = ctx.productName as string
-    const businessId = ctx.businessId as string
     const price = parseFloat(input.replace(/[^0-9.]/g, ''))
 
     if (isNaN(price) || price <= 0) {
       return `⚠️ Please enter a valid price in Kwacha.\n\nExample: *K45* or *45*\n\nType the price 👇${back}`
+    }
+
+    // FEATURE: product photos — needed for the WhatsApp catalog (native
+    // shopping UI) later; optional for now so onboarding isn't blocked.
+    await setConv(phone, { state: 'SELLER_FIRST_PHOTO', context: { ...ctx, price } })
+    return `✅ *${productName}* — K${price}\n\n📸 Send a photo of your product, or type *skip*.\n\nA photo helps customers trust and choose your listing 👇${back}`
+  }
+
+  if (state === 'SELLER_FIRST_PHOTO') {
+    const productName = ctx.productName as string
+    const businessId = ctx.businessId as string
+    const price = ctx.price as number
+
+    if (msg !== 'skip' && !incomingImageUrl) {
+      return `📸 Send a photo of your product, or type *skip* to list without one.${back}`
     }
 
     if (businessId) {
@@ -699,12 +723,14 @@ async function handle(phone: string, raw: string): Promise<string> {
         business_id: businessId,
         name: productName,
         price,
+        image_url: incomingImageUrl || null,
         is_available: true
       })
     }
 
     await setConv(phone, { state: 'MAIN_MENU', context: {} })
-    return `✅ *${productName}* listed at K${price}!\n\n🎊 Your Peza store is LIVE!\n${divider}\n📱 Manage your store:\npeza.africa/dashboard\n\n📦 To add more products, visit your dashboard.\n\nShare your store:\nwa.me/447860088970\n\nCustomers can now find and order from you!\n\nZikomo & welcome to Peza! 🇿🇲🙏\n\nType *menu* to continue.`
+    const photoNote = incomingImageUrl ? '' : `\n💡 Tip: add a photo anytime from your dashboard — listings with photos sell faster.\n`
+    return `✅ *${productName}* listed at K${price}!\n\n🎊 Your Peza store is LIVE!\n${divider}\n📱 Manage your store:\npeza.africa/dashboard\n${photoNote}\n📦 To add more products, visit your dashboard.\n\nShare your store:\nwa.me/260570230160\n\nCustomers can now find and order from you!\n\nZikomo & welcome to Peza! 🇿🇲🙏\n\nType *menu* to continue.`
   }
 
   // ── GROUP BUY ─────────────────────────────────────────────────────────────
@@ -860,6 +886,51 @@ async function routeMainMenu(phone: string, msg: string, cart: CartItem[], ctx: 
 
   // Unknown input from main menu — re-prompt cleanly.
   return `Please reply with a number from the menu.\n\n${mainMenu()}`
+}
+
+// FEATURE: WhatsApp catalog orders — once the Commerce Manager catalog is
+// live, customers can check out using WhatsApp's native cart instead of the
+// bot's text menu. This converts that structured order into the same
+// CartItem[] shape the rest of checkout already uses, then reuses the exact
+// same address/payment flow.
+//
+// NOTE: verify the exact shape of `orderMessage` against a real inbound
+// payload once the catalog exists — this hedges between the two shapes
+// Meta/Infobip docs describe (`order.product_items` vs `product_items`
+// directly on the message).
+async function handleCatalogOrder(phone: string, orderMessage: any): Promise<string> {
+  const items = orderMessage?.order?.product_items || orderMessage?.product_items || []
+  if (!items.length) {
+    return `Sorry, we couldn't read that order. Type *menu* to browse and order manually instead.`
+  }
+
+  const cartItems: CartItem[] = []
+  for (const item of items) {
+    const productId = item.product_retailer_id || item.productRetailerId
+    if (!productId) continue
+    const product = await getProduct(productId)
+    if (!product) continue
+    const biz = await db().from('businesses').select('id,name').eq('id', product.business_id).single()
+    cartItems.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      qty: item.quantity || 1,
+      businessId: product.business_id,
+      businessName: biz.data?.name || 'Seller'
+    })
+  }
+
+  if (!cartItems.length) {
+    return `Sorry, none of those items are available right now. Type *menu* to browse and order manually.`
+  }
+
+  await ensureCustomer(phone)
+  await setConv(phone, { state: 'CHECKOUT_ADDRESS', cart: cartItems, context: {} })
+
+  const total = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
+  const summary = cartItems.map(i => `• ${i.name} x${i.qty} = K${i.price * i.qty}`).join('\n')
+  return `🛒 *Order received!*\n${divider}\n${summary}\n${divider}\n*Total: K${total}*\n${divider}\n🏠 Where should we deliver?\n\nExample:\n*Plot 45 Kabangwe Road, Lusaka*\nor\n*Collect from merchant*\n\nType your address 👇`
 }
 
 // ── CHECKOUT CONFIRM (extracted to avoid code duplication) ────────────────────
@@ -1042,6 +1113,31 @@ async function transcribeVoiceNote(mediaUrl: string): Promise<string | null> {
   }
 }
 
+// FEATURE: product photos — downloads an inbound WhatsApp image from Infobip
+// and re-uploads it to Supabase Storage (public bucket 'product-images') so
+// we have a permanent URL, since Infobip's media URLs can expire.
+async function uploadInboundImage(mediaUrl: string, phone: string): Promise<string | null> {
+  try {
+    const imgRes = await fetch(mediaUrl, { headers: { 'Authorization': `App ${INFOBIP_API_KEY}` } })
+    if (!imgRes.ok) return null
+    const buf = await imgRes.arrayBuffer()
+    const contentType = imgRes.headers.get('content-type') || 'image/jpeg'
+    const ext = contentType.includes('png') ? 'png' : 'jpg'
+    const path = `${phone}/${Date.now()}.${ext}`
+
+    const { error } = await db().storage.from('product-images').upload(path, buf, { contentType })
+    if (error) {
+      console.error('uploadInboundImage storage error:', error.message)
+      return null
+    }
+    const { data } = db().storage.from('product-images').getPublicUrl(path)
+    return data.publicUrl
+  } catch (e) {
+    console.error('uploadInboundImage error:', e)
+    return null
+  }
+}
+
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
@@ -1065,6 +1161,28 @@ export async function POST(request: NextRequest) {
         }
         message = transcript
         console.log(`🎙️ [${from}] transcribed: ${message}`)
+      }
+
+      // FEATURE: product photos — inbound image messages. Same caveat as
+      // above: verify `message.url` against a real Infobip payload once live.
+      if (!message && msgType === 'IMAGE' && result?.message?.url && from) {
+        const publicUrl = await uploadInboundImage(result.message.url, from)
+        if (!publicUrl) {
+          await send(from, `😔 Sorry, I couldn't process that photo. Please try again, or type *skip*.`)
+          continue
+        }
+        message = `__IMAGE_URL__:${publicUrl}`
+        console.log(`📸 [${from}] photo uploaded: ${publicUrl}`)
+      }
+
+      // FEATURE: WhatsApp catalog orders — arrive as a distinct message type
+      // once the Commerce Manager catalog is live. NOTE: verify this against
+      // a real payload once the catalog is set up; Meta/Infobip's documented
+      // shape uses message.type === 'ORDER' with a product_items array.
+      if (msgType === 'ORDER' && from) {
+        const reply = await handleCatalogOrder(from, result.message)
+        await send(from, reply)
+        continue
       }
 
       if (!from || !message) continue
