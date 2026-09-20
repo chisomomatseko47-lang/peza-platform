@@ -1185,7 +1185,10 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      if (!from || !message) continue
+      if (!from || !message) {
+        console.log('⚠️ Could not extract message text — raw result:', JSON.stringify(result))
+        continue
+      }
       console.log(`📱 [${from}]: ${message}`)
       const reply = await handle(from, message)
       await send(from, reply)
