@@ -1142,12 +1142,38 @@ async function uploadInboundImage(mediaUrl: string, phone: string): Promise<stri
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('📥 Infobip webhook received')
-    const results = body?.results || []
+    console.log('📥 Infobip webhook received — raw body:', JSON.stringify(body))
+
+    // Infobip can deliver inbound WhatsApp events in either the results-array
+    // shape ({ results: [{ from, message: { type, text } }] }) or the older
+    // MO webhook shape ({ event: "MO", sender, destination, content: [{ type, text }] }).
+    // NOTE (2026-09-23): unverified against a real payload as of this commit —
+    // the raw-body log above is what will actually confirm which shape applies
+    // to this sender's configuration.
+    const results = Array.isArray(body?.results)
+      ? body.results
+      : (body?.event === 'MO' ? [{
+          ...body,
+          from: body?.sender,
+          to: body?.destination,
+          message: Array.isArray(body?.content) ? body.content[0] : body?.content
+        }] : [])
+
     for (const result of results) {
-      const from = result?.from
-      const msgType = result?.message?.type
-      let message = result?.message?.text || result?.message?.body || ''
+      const from = result?.from || result?.sender
+      const msgType = String(
+        result?.message?.type ||
+        result?.content?.[0]?.type ||
+        ''
+      ).toUpperCase()
+      let message =
+        result?.message?.text ||
+        result?.message?.body ||
+        (Array.isArray(result?.content)
+          ? result.content.find((c: any) => c?.text)?.text
+          : '') ||
+        result?.content?.text ||
+        ''
 
       // FEATURE: voice notes — Infobip sends inbound audio with type AUDIO
       // and a media URL. NOTE: verify the exact field name against your
